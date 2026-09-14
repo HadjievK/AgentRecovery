@@ -8,6 +8,9 @@ The project is inspired by the packaging model of the [Agent Skills open specifi
 
 Status: **Draft 0.1 - Request for Comments**
 
+> **The core rule:** if an agent may have changed external state, verify what
+> happened before retrying.
+
 ## Why this exists
 
 An agent can receive a timeout after an external operation has already succeeded. Blindly retrying can then create duplicate payments, purchase requests, emails, tickets, deployments, or access grants. A kill switch can stop the next action, but it cannot determine what already happened or repair the resulting business state.
@@ -45,6 +48,49 @@ recovery-plan-name/
 
 See the [draft specification](SPEC.md), [conformance levels](CONFORMANCE.md), [normative plan schema](schema/recovery-plan.schema.json), and [procurement example](examples/procurement-request/RECOVERY.md).
 
+## Recovery flow
+
+```mermaid
+flowchart LR
+    A[Operation attempted] --> B{Effect possible?}
+    B -- No --> C[Retry under policy]
+    B -- Yes --> D[Verify authoritative state]
+    D --> E{Applied?}
+    E -- No --> F[Retry with same idempotency key]
+    E -- Yes --> G[Return result or compensate]
+    E -- Unknown --> H[Contain and escalate]
+    F --> I[Audit and resume gate]
+    G --> I
+    H --> I
+```
+
+## Try it
+
+Validate every included recovery plan:
+
+```bash
+python -m pip install -r requirements-dev.txt
+python scripts/validate.py
+```
+
+Examples currently cover:
+
+- [procurement request creation](examples/procurement-request/RECOVERY.md);
+- [external email delivery](examples/email-delivery/RECOVERY.md); and
+- [production deployment](examples/production-deployment/RECOVERY.md).
+
+## Join the RFC
+
+This is an early proposal, not an established standard. We are looking for agent
+builders, platform engineers, SREs, security teams, and business-system owners to:
+
+1. test `RECOVERY.md` against a real side-effecting workflow;
+2. challenge the schema and recovery states;
+3. contribute failure-injection cases or another domain example; and
+4. discuss interoperability requirements in [GitHub Discussions](https://github.com/HadjievK/AgentRecovery/discussions).
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [ROADMAP.md](ROADMAP.md) to get involved.
+
 ## Security boundary
 
 `RECOVERY.md` is input to a trusted controller, not an authorization grant. A conformant controller must validate the plan, resolve capability identifiers through an administrator-controlled registry, enforce normal identity and policy checks, and reject any plan that attempts to broaden its own authority.
@@ -59,4 +105,4 @@ See the [draft specification](SPEC.md), [conformance levels](CONFORMANCE.md), [n
 
 ## License
 
-No license has been selected yet. Repository owners should choose an appropriate license before accepting external contributions.
+Licensed under the [Apache License 2.0](LICENSE).
