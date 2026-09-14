@@ -1,5 +1,7 @@
 # Agent Recovery
 
+![Agent Recovery — verify state before retrying](assets/social-preview.png)
+
 **A portable, file-based recovery-plan format for AI agents.**
 
 Agent Recovery proposes `RECOVERY.md`: a human-readable and machine-validated plan that tells a trusted recovery controller how to verify, contain, compensate for, and safely resume agent operations.
