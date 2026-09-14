@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/HadjievK/AgentRecovery/main/schema/recovery-plan.schema.json",
+  "title": "Agent Recovery Plan",
+  "description": "Normative schema for the YAML frontmatter of RECOVERY.md, draft 0.1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "description",
+    "version",
+    "spec_version",
+    "applies_to",
+    "operation",
+    "verify",
+    "retry",
+    "contain",
+    "escalate",
+    "resume",
+    "audit"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1024
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "spec_version": {
+      "const": "aff-rp/0.1"
+    },
+    "applies_to": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tools", "effect_class"],
+      "properties": {
+        "tools": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/capability" }
+        },
+        "effect_class": {
+          "$ref": "#/$defs/effectClass"
+        }
+      }
+    },
+    "aff_triggers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^AF-[4-9](?:[0-9]{2}|xx)$"
+          },
+          "when": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_fields", "action_ledger"],
+      "properties": {
+        "required_fields": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "operation_id",
+              "correlation_id",
+              "idempotency_key",
+              "agent_id",
+              "task_id"
+            ]
+          },
+          "allOf": [
+            { "contains": { "const": "operation_id" } },
+            { "contains": { "const": "correlation_id" } }
+          ]
+        },
+        "action_ledger": {
+          "enum": ["required", "optional"]
+        }
+      }
+    },
+    "verify": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "outcomes"],
+      "properties": {
+        "capability": { "$ref": "#/$defs/capability" },
+        "outcomes": {
+          "type": "object",
+          "minProperties": 2,
+          "additionalProperties": { "$ref": "#/$defs/state" }
+        }
+      }
+    },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_only_when", "max_attempts"],
+      "properties": {
+        "allowed_only_when": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/state" },
+          "not": { "contains": { "const": "unknown" } }
+        },
+        "reuse_idempotency_key": { "type": "boolean" },
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "compensate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "allowed_only_when"],
+      "properties": {
+        "capability": { "$ref": "#/$defs/capability" },
+        "allowed_only_when": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "approval": { "type": "string", "minLength": 1 }
+      }
+    },
+    "contain": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["capability"],
+        "properties": {
+          "capability": { "$ref": "#/$defs/capability" },
+          "scope": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "escalate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["when", "role"],
+      "properties": {
+        "when": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "role": { "type": "string", "minLength": 1 }
+      }
+    },
+    "resume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requires"],
+      "properties": {
+        "requires": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record"],
+      "properties": {
+        "record": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "capability": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
+    "effectClass": {
+      "enum": [
+        "read-only",
+        "reversible-write",
+        "irreversible-write",
+        "external-communication",
+        "financial-action",
+        "authority-change",
+        "multi-step-workflow"
+      ]
+    },
+    "state": {
+      "enum": [
+        "started",
+        "effect-possible",
+        "verified-not-applied",
+        "verified-applied",
+        "unknown",
+        "retry-safe",
+        "compensating",
+        "contained",
+        "recovered",
+        "escalated",
+        "resume-pending",
+        "closed"
+      ]
+    }
+  }
+}
