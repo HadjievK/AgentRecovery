@@ -4,12 +4,7 @@
 
 Agent Recovery proposes `RECOVERY.md`: a human-readable and machine-validated plan that tells a trusted recovery controller how to verify, contain, compensate for, and safely resume agent operations.
 
-The project is inspired by the packaging model of the [Agent Skills open specification](https://github.com/agentskills/agentskills) and is designed to complement the [Agentic Failure Framework (AFF)](https://github.tools.sap/I535106/AI-Ideas):
-
-```text
-AFF          = What failed, where it failed, and the suggested disposition
-RECOVERY.md  = How to verify the external state, contain effects, recover, and resume
-```
+The project is inspired by the packaging model of the [Agent Skills open specification](https://github.com/agentskills/agentskills), while remaining focused on recovery as a separate operational concern.
 
 Status: **Draft 0.1 - Request for Comments**
 
@@ -32,7 +27,7 @@ Agent Recovery makes that missing operational contract explicit. A recovery plan
 1. **Declarative, not executable by default.** Plans reference trusted capability identifiers; they do not embed arbitrary shell commands.
 2. **Unknown is a real state.** A timeout is not proof that an operation failed.
 3. **No blind retries after possible side effects.** Verify external state first.
-4. **Failure classification and recovery remain separate.** AFF records can trigger a plan, but do not themselves perform remediation.
+4. **Recovery starts from observable operation state.** A plan does not require a particular failure taxonomy or agent framework.
 5. **Stopping and revoking are separate operations.** A stopped task may leave valid tokens or delegated work behind.
 6. **Recovery includes safe resumption.** The agent does not authorize its own return to service after a material incident.
 7. **Human authority is risk-driven.** Irreversible, ambiguous, or high-impact recovery decisions require an accountable person.
@@ -56,10 +51,10 @@ See the [draft specification](SPEC.md), [conformance levels](CONFORMANCE.md), [n
 
 ## Open questions
 
-- Should the standard be named Agent Recovery, AFF Recovery Profile, or remain neutral with an optional AFF binding?
+- Should the standard be named Agent Recovery Plan or Agent Recovery Protocol?
 - Should recovery-event records be standardized in the core or in a separate profile?
 - How should plans be signed, distributed, and pinned to tool versions?
-- How should recovery lineage cross A2A and MCP process boundaries?
+- How should recovery lineage cross agent, process, and service boundaries?
 - Which organization should steward capability and effect-class registries?
 
 ## License

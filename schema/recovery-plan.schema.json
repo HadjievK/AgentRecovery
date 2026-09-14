@@ -36,7 +36,7 @@
       "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
     },
     "spec_version": {
-      "const": "aff-rp/0.1"
+      "const": "agent-recovery/0.1"
     },
     "applies_to": {
       "type": "object",
@@ -54,16 +54,28 @@
         }
       }
     },
-    "aff_triggers": {
+    "triggers": {
       "type": "array",
+      "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["code"],
+        "required": ["event"],
         "properties": {
-          "code": {
-            "type": "string",
-            "pattern": "^AF-[4-9](?:[0-9]{2}|xx)$"
+          "event": {
+            "enum": [
+              "timeout",
+              "timeout-after-side-effect",
+              "unknown-state",
+              "duplicate-detected",
+              "partial-completion",
+              "authorization-failure",
+              "policy-conflict",
+              "verification-failure",
+              "compensation-failure",
+              "safety-violation",
+              "manual-intervention"
+            ]
           },
           "when": {
             "type": "string",

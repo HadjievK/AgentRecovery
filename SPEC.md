@@ -15,7 +15,7 @@ The YAML frontmatter is normative and must validate against `schema/recovery-pla
 Agent Recovery does not:
 
 - classify the root cause of agent failures;
-- replace AFF, A2A, MCP, workflow engines, or incident-response systems;
+- replace workflow engines or incident-response systems;
 - grant credentials or bypass resource-side authorization;
 - make arbitrary scripts trustworthy;
 - guarantee that every external effect is reversible; or
@@ -65,7 +65,7 @@ The document must begin with YAML frontmatter delimited by `---`. Required top-l
 - `resume`
 - `audit`
 
-`compensate` and `aff_triggers` are optional.
+`compensate` and `triggers` are optional.
 
 ### 5.1 Capability identifiers
 
@@ -92,7 +92,7 @@ Controllers may apply stricter policy than the plan requests. Unknown effect cla
 A conformant recovery controller performs these steps:
 
 1. Validate the plan and establish its trusted provenance and version.
-2. Match the failed operation to `applies_to` and any declared failure triggers.
+2. Match the affected operation to `applies_to` and any declared recovery triggers.
 3. Load the Action Ledger using the operation and correlation identifiers.
 4. Determine whether an external side effect was impossible, possible, confirmed, or unknown.
 5. If a side effect was possible but unconfirmed, verify authoritative downstream state before retrying.
@@ -135,22 +135,27 @@ started
 
 Unknown state must never transition directly to a repeated side-effecting operation.
 
-## 8. AFF binding
+## 8. Recovery triggers
 
-An AFF record may select or influence a recovery plan through `aff_triggers`. The AFF disposition remains a hint, not a recovery authorization.
+A trigger is an observable condition that causes a controller to evaluate a recovery plan. Triggers select a plan; they do not authorize a recovery action.
 
-Examples:
+The initial trigger vocabulary includes:
 
-| AFF signal | Recovery refinement |
-| --- | --- |
-| `AF-9xx` timeout | Verify downstream state before retry when a side effect was possible. |
-| `AF-7xx` tool failure | Consult tool semantics and the Action Ledger. |
-| `AF-8xx` safety failure | Stop the branch, contain authority, and inspect completed effects. |
-| `AF-6xx` orchestration failure | Stop descendant tasks and cancel queued work. |
-| `AF-4xx` context failure | Quarantine affected context or memory before reformulation. |
-| Observer-diagnosed wrongness | Identify and recover downstream effects produced before detection. |
+- `timeout`
+- `timeout-after-side-effect`
+- `unknown-state`
+- `duplicate-detected`
+- `partial-completion`
+- `authorization-failure`
+- `policy-conflict`
+- `verification-failure`
+- `compensation-failure`
+- `safety-violation`
+- `manual-intervention`
 
-AFF cascade references should be preserved in recovery evidence so one origin failure and its downstream effects can be investigated as one incident.
+The vocabulary describes conditions relevant to recovery, not their root cause. A controller may derive these events from tool results, workflow state, monitoring, deterministic policy, or an authorized operator.
+
+For example, `timeout-after-side-effect` must lead to state verification before any retry, while `authorization-failure` must not be resolved by repeatedly attempting the same operation.
 
 ## 9. Containment and revocation
 
@@ -170,7 +175,7 @@ The controller must escalate when required by enterprise policy or the plan. Typ
 - the recovery capability would increase authority; or
 - the business impact exceeds the autonomous-recovery threshold.
 
-The reviewer should receive the initiating request, agent and task identity, AFF record when present, attempted operation, tool result, ledger state, downstream references, verification evidence, recommended action, and consequences of approval or rejection.
+The reviewer should receive the initiating request, agent and task identity, triggering event, attempted operation, tool result, ledger state, downstream references, verification evidence, recommended action, and consequences of approval or rejection.
 
 ## 11. Resumption
 
@@ -202,4 +207,4 @@ Recovery capabilities should be idempotent where possible. Compensation must its
 
 ## 14. Protocol bindings
 
-The core format is protocol-neutral. Future bindings may define how plan references, operation identifiers, recovery states, and evidence references are carried through A2A task metadata, MCP structured content, workflow events, and tracing systems.
+The core format is protocol-neutral. Future bindings may define how plan references, operation identifiers, recovery states, and evidence references are carried through agent protocols, workflow events, and tracing systems.

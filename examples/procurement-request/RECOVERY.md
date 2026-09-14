@@ -4,18 +4,19 @@ description: >-
   Recover creation of a procurement request when the result is uncertain,
   duplicated, partially completed, or unauthorized.
 version: "0.1.0"
-spec_version: "aff-rp/0.1"
+spec_version: "agent-recovery/0.1"
 
 applies_to:
   tools:
     - procurement.create-request
   effect_class: reversible-write
 
-aff_triggers:
-  - code: "AF-9xx"
-    when: side_effect_possible
-  - code: "AF-7xx"
-  - code: "AF-8xx"
+triggers:
+  - event: timeout-after-side-effect
+  - event: unknown-state
+  - event: duplicate-detected
+  - event: partial-completion
+  - event: authorization-failure
 
 operation:
   required_fields:
@@ -71,7 +72,7 @@ resume:
 
 audit:
   record:
-    - aff_failure
+    - failure_signal
     - operation_state
     - verification_evidence
     - recovery_decision
@@ -101,7 +102,7 @@ Provide the reviewer with:
 
 - the original user request;
 - agent and task identity;
-- the AFF failure record, when available;
+- the triggering failure signal and available evidence;
 - the Action Ledger entry;
 - downstream procurement identifiers;
 - verification results;
