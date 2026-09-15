@@ -4,7 +4,7 @@ Agent Recovery is currently a specification draft and reference material, not a
 production recovery controller.
 
 Do not place credentials, private business data, or executable secrets in a
-`RECOVERY.md` file or public issue. Recovery plans are security-sensitive
+`RECOVERY.yaml`, `RECOVERY.md`, or public issue. Recovery machines are security-sensitive
 supply-chain artifacts and must not be treated as authorization grants.
 
 For a suspected vulnerability, use GitHub's private vulnerability reporting when

@@ -1,4 +1,4 @@
-name: Validate recovery plans
+name: Validate recovery machines
 
 on:
   push:

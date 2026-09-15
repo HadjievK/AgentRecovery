@@ -1,0 +1,139 @@
+name: production-deployment-recovery
+description: >-
+  Deterministically recover an agent-initiated production deployment that is
+  partial, unhealthy, or has an uncertain completion state.
+version: 0.2.0
+spec_version: agent-recovery/0.2
+
+applies_to:
+  tools:
+    - delivery.deploy-production
+  effect_class: multi-step-workflow
+
+initial: effect-possible
+
+states:
+  effect-possible:
+    classification: effect-possible
+    "on":
+      START_VERIFICATION:
+        target: verifying
+        actions:
+          - kind: verify
+            capability: delivery.get-deployment-state
+
+  verifying:
+    classification: verifying
+    "on":
+      DEPLOYMENT_HEALTHY:
+        target: recovered
+      DEPLOYMENT_NOT_STARTED:
+        target: retry-safe
+      DEPLOYMENT_UNHEALTHY:
+        target: verified-applied
+      DEPLOYMENT_INCONCLUSIVE:
+        target: unknown
+
+  retry-safe:
+    classification: retry-safe
+    "on":
+      RETRY_REQUESTED:
+        target: verifying
+        guard: retry.within-attempt-limit
+        actions:
+          - kind: retry
+            capability: delivery.deploy-production
+            with:
+              reuse_idempotency_key: true
+
+  verified-applied:
+    classification: verified-applied
+    "on":
+      ROLLBACK_REQUESTED:
+        target: compensating
+        guard: compensation.rollback-approved-and-target-verified
+        actions:
+          - kind: compensate
+            capability: delivery.rollback-to-last-known-good
+
+  unknown:
+    classification: unknown
+    entry:
+      - kind: contain
+        capability: agent.stop-task
+        with:
+          scope: current-task
+      - kind: revoke
+        capability: identity.revoke-task-token
+        with:
+          scope: current-task
+      - kind: contain
+        capability: delivery.freeze-environment
+        with:
+          scope: affected-environment
+    "on":
+      CONTAINMENT_COMPLETED:
+        target: escalated
+        actions:
+          - kind: escalate
+            capability: incident.open-production-case
+      CONTAINMENT_FAILED:
+        target: escalated
+        actions:
+          - kind: escalate
+            capability: incident.open-production-case
+
+  compensating:
+    classification: compensating
+    "on":
+      ROLLBACK_SUCCEEDED:
+        target: recovered
+      ROLLBACK_FAILED:
+        target: escalated
+        actions:
+          - kind: escalate
+            capability: incident.open-production-case
+
+  recovered:
+    classification: recovered
+    "on":
+      BEGIN_RESUME_REVIEW:
+        target: resume-pending
+
+  escalated:
+    classification: escalated
+    "on":
+      HUMAN_RESOLUTION_RECORDED:
+        target: resume-pending
+        guard: incident.resolution-verified
+
+  resume-pending:
+    classification: resume-pending
+    "on":
+      RESUME_APPROVED:
+        target: closed
+        guard: resume.environment-health-and-owner-approval-verified
+        actions:
+          - kind: resume
+            capability: delivery.unfreeze-environment
+          - kind: resume
+            capability: identity.issue-new-task-token
+          - kind: resume
+            capability: agent.resume-task
+
+  closed:
+    classification: closed
+    type: final
+
+audit:
+  record:
+    - operation_state
+    - deployment_id
+    - artifact_version
+    - environment
+    - event_id
+    - evidence_reference
+    - guard_decision
+    - selected_transition
+    - state_after
+    - approver

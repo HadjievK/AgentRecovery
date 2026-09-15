@@ -1,12 +1,12 @@
 # Contributing to Agent Recovery
 
 Agent Recovery is a draft Request for Comments. Contributions should help test
-whether `RECOVERY.md` can express safe, portable recovery for real agent
+whether `RECOVERY.yaml` can express safe, portable recovery for real agent
 operations.
 
 ## Useful contributions
 
-- A recovery plan for a real side-effecting workflow
+- A recovery state machine for a real side-effecting workflow
 - A failure case the current model cannot represent
 - A schema or specification clarification
 - A failure-injection or conformance test
@@ -21,7 +21,8 @@ cloud, or workflow engine.
    authoritative verification source, safe retry rule, containment, and resume
    gate.
 2. For a new example, copy an existing example into
-   `examples/<domain>/RECOVERY.md` and replace every domain-specific capability.
+   `examples/<domain>/RECOVERY.yaml` and replace every domain-specific capability.
+   Add `RECOVERY.md` only when operator guidance is useful.
 3. Run `python scripts/validate.py`.
 4. Submit a focused pull request and explain which uncertainty or recovery path
    it exercises.

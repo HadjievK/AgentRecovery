@@ -34,11 +34,11 @@ def main() -> None:
     draw.line((70, 80, 70, 560), fill="#2dd4bf", width=8)
 
     draw.text((112, 82), "AGENT RECOVERY", font=font(27, True), fill="#5eead4")
-    draw.text((108, 142), "RECOVERY.md", font=font(74, True), fill="#f8fafc")
+    draw.text((108, 142), "RECOVERY.yaml", font=font(68, True), fill="#f8fafc")
     draw.text((112, 240), "Verify state before retrying.", font=font(36), fill="#cbd5e1")
     draw.text(
         (112, 294),
-        "A portable recovery-plan protocol for side-effecting AI agents.",
+        "A deterministic recovery statechart for side-effecting AI agents.",
         font=font(23),
         fill="#94a3b8",
     )

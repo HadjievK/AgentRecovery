@@ -1,70 +1,72 @@
 # Agent Recovery Conformance
 
-Conformance is layered so teams can adopt the format incrementally.
+Conformance is layered so teams can adopt deterministic recovery incrementally.
 
-## Level 1 - Recovery Plan
+## Level 1 - Recovery Machine
 
-A conformant plan:
+A conformant machine:
 
-1. Uses a `RECOVERY.md` file with YAML frontmatter.
-2. Validates against `schema/recovery-plan.schema.json`.
-3. References capabilities by identifier rather than embedding commands or credentials.
-4. Defines verification, retry, containment, escalation, audit, and resumption behavior.
-5. Never permits retry directly from unknown state for a side-effecting operation.
+1. Uses a `RECOVERY.yaml` file that validates against the normative schema.
+2. Declares an initial state, accepted events, transitions, and a final state.
+3. References guards and actions by registered identifier.
+4. Contains no scripts, executable expressions, prompts, or credentials.
+5. Never permits retry directly from unknown state after a possible side effect.
 
 ## Level 2 - Recoverable Tool
 
 A conformant tool integration additionally:
 
-1. Accepts or returns an operation identifier and correlation identifier.
-2. Provides an idempotency strategy for side-effecting operations.
-3. Reports whether a side effect was possible and whether it was confirmed.
-4. Provides an authoritative verification mechanism.
-5. Declares whether compensation is supported.
+1. accepts or returns operation, correlation, and idempotency identifiers;
+2. reports whether a side effect was possible and confirmed;
+3. provides an authoritative verification mechanism;
+4. emits deduplicated recovery events with evidence references; and
+5. declares whether compensation is supported.
 
 ## Level 3 - Recovery Controller
 
 A conformant controller additionally:
 
-1. Validates and pins the selected plan version.
-2. Uses durable Action Ledger state rather than conversational memory.
-3. Resolves capabilities through an administrator-controlled registry.
-4. Enforces recovery transitions deterministically.
-5. Records evidence and outcomes for every transition.
-6. Applies enterprise policy even when it is stricter than the plan.
+1. validates and pins the machine version and provenance;
+2. stores current state and evidence in a durable Action Ledger;
+3. resolves guards and actions through administrator-controlled registries;
+4. selects transitions deterministically and fails closed;
+5. records a transition before invoking its actions;
+6. handles action results as new events; and
+7. enforces enterprise policy when it is stricter than the machine.
 
 ## Level 4 - Enterprise Recovery
 
 An enterprise-conformant deployment additionally:
 
-1. Can separately stop execution and revoke authority.
-2. Can disable or isolate an affected capability or destination.
-3. Supports risk-driven human escalation and accountable approval.
-4. Enforces a resume gate after material incidents.
-5. Correlates recovery evidence with existing security and business telemetry.
-6. Exercises recovery through failure-injection tests and response drills.
+1. can separately stop execution and revoke authority;
+2. can isolate an affected capability, destination, or delegated workflow;
+3. supports risk-driven human escalation and authenticated decisions;
+4. enforces a resume gate after material incidents;
+5. correlates recovery events with security and business telemetry; and
+6. exercises recovery through failure injection and response drills.
 
 ## Level 5 - Multi-Agent Recovery
 
 A multi-agent-conformant deployment additionally:
 
-1. Preserves origin and cascade lineage across agents and protocols.
-2. Identifies and stops descendant tasks and queued work.
-3. Revokes delegated credentials throughout the affected chain.
-4. Reconstructs completed effects for every participating agent.
-5. Prevents a child or peer agent from silently resuming a contained incident.
+1. preserves origin and cascade lineage across agents and protocols;
+2. identifies and stops descendant tasks and queued work;
+3. revokes delegated credentials throughout the affected chain;
+4. reconstructs completed effects for every participating agent; and
+5. prevents a child or peer agent from silently resuming a contained incident.
 
-## Conformance testing
-
-A future reference suite should include at least:
+## Required conformance scenarios
 
 - timeout before a side effect;
 - timeout after a side effect;
-- duplicate-operation detection;
-- verification unavailable;
+- duplicate event delivery;
+- duplicate business operation detection;
+- verification unavailable or conflicting;
 - partial multi-step completion;
+- guard resolution failure;
+- rejected invalid transition;
 - failed compensation;
+- containment action failure;
 - authorization conflict;
-- safety containment;
 - descendant-task cancellation; and
 - resume-gate rejection.

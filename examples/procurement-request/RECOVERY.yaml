@@ -1,0 +1,138 @@
+name: procurement-request-recovery
+description: >-
+  Deterministically recover creation of a procurement request when its external
+  effect is uncertain, duplicated, partially completed, or unauthorized.
+version: 0.2.0
+spec_version: agent-recovery/0.2
+
+applies_to:
+  tools:
+    - procurement.create-request
+  effect_class: reversible-write
+
+initial: effect-possible
+
+states:
+  effect-possible:
+    classification: effect-possible
+    "on":
+      START_VERIFICATION:
+        target: verifying
+        actions:
+          - kind: verify
+            capability: procurement.find-by-idempotency-key
+
+  verifying:
+    classification: verifying
+    "on":
+      VERIFICATION_FOUND:
+        target: verified-applied
+      VERIFICATION_NOT_FOUND:
+        target: retry-safe
+      VERIFICATION_INCONCLUSIVE:
+        target: unknown
+      VERIFICATION_FAILED:
+        target: unknown
+
+  retry-safe:
+    classification: retry-safe
+    "on":
+      RETRY_REQUESTED:
+        target: verifying
+        guard: retry.within-attempt-limit
+        actions:
+          - kind: retry
+            capability: procurement.create-request
+            with:
+              reuse_idempotency_key: true
+
+  verified-applied:
+    classification: verified-applied
+    "on":
+      ACCEPT_EXISTING_RESULT:
+        target: recovered
+      COMPENSATE_REQUESTED:
+        target: compensating
+        guard: compensation.procurement-owner-approved
+        actions:
+          - kind: compensate
+            capability: procurement.cancel-request
+
+  unknown:
+    classification: unknown
+    entry:
+      - kind: contain
+        capability: agent.stop-task
+        with:
+          scope: current-task
+      - kind: revoke
+        capability: identity.revoke-task-token
+        with:
+          scope: current-task
+      - kind: contain
+        capability: workflow.cancel-descendants
+        with:
+          scope: task-cascade
+    "on":
+      CONTAINMENT_COMPLETED:
+        target: escalated
+        actions:
+          - kind: escalate
+            capability: incident.open-procurement-case
+      CONTAINMENT_FAILED:
+        target: escalated
+        actions:
+          - kind: escalate
+            capability: incident.open-procurement-case
+
+  compensating:
+    classification: compensating
+    "on":
+      COMPENSATION_SUCCEEDED:
+        target: recovered
+      COMPENSATION_FAILED:
+        target: escalated
+        actions:
+          - kind: escalate
+            capability: incident.open-procurement-case
+
+  recovered:
+    classification: recovered
+    "on":
+      BEGIN_RESUME_REVIEW:
+        target: resume-pending
+
+  escalated:
+    classification: escalated
+    "on":
+      HUMAN_RESOLUTION_RECORDED:
+        target: resume-pending
+        guard: incident.resolution-verified
+
+  resume-pending:
+    classification: resume-pending
+    "on":
+      RESUME_APPROVED:
+        target: closed
+        guard: resume.evidence-and-owner-approval-verified
+        actions:
+          - kind: resume
+            capability: identity.issue-new-task-token
+          - kind: resume
+            capability: agent.resume-task
+
+  closed:
+    classification: closed
+    type: final
+
+audit:
+  record:
+    - failure_signal
+    - state_before
+    - event_id
+    - evidence_reference
+    - guard_decision
+    - selected_transition
+    - invoked_capabilities
+    - state_after
+    - approver

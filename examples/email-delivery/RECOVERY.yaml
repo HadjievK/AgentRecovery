@@ -1,0 +1,110 @@
+name: email-delivery-recovery
+description: >-
+  Deterministically recover an external email delivery when provider response,
+  delivery state, or duplicate status is uncertain.
+version: 0.2.0
+spec_version: agent-recovery/0.2
+
+applies_to:
+  tools:
+    - messaging.send-email
+  effect_class: external-communication
+
+initial: effect-possible
+
+states:
+  effect-possible:
+    classification: effect-possible
+    "on":
+      START_VERIFICATION:
+        target: verifying
+        actions:
+          - kind: verify
+            capability: messaging.find-delivery-by-idempotency-key
+
+  verifying:
+    classification: verifying
+    "on":
+      DELIVERY_CONFIRMED:
+        target: recovered
+      DELIVERY_NOT_ACCEPTED:
+        target: retry-safe
+      DELIVERY_INCONCLUSIVE:
+        target: unknown
+      DUPLICATE_DETECTED:
+        target: unknown
+
+  retry-safe:
+    classification: retry-safe
+    "on":
+      RETRY_REQUESTED:
+        target: verifying
+        guard: retry.within-attempt-limit
+        actions:
+          - kind: retry
+            capability: messaging.send-email
+            with:
+              reuse_idempotency_key: true
+
+  unknown:
+    classification: unknown
+    entry:
+      - kind: contain
+        capability: agent.stop-task
+        with:
+          scope: current-task
+      - kind: revoke
+        capability: messaging.suspend-sender
+        with:
+          scope: current-agent
+    "on":
+      CONTAINMENT_COMPLETED:
+        target: escalated
+        actions:
+          - kind: escalate
+            capability: incident.open-communications-case
+      CONTAINMENT_FAILED:
+        target: escalated
+        actions:
+          - kind: escalate
+            capability: incident.open-communications-case
+
+  recovered:
+    classification: recovered
+    "on":
+      BEGIN_RESUME_REVIEW:
+        target: resume-pending
+
+  escalated:
+    classification: escalated
+    "on":
+      HUMAN_RESOLUTION_RECORDED:
+        target: resume-pending
+        guard: incident.resolution-verified
+
+  resume-pending:
+    classification: resume-pending
+    "on":
+      RESUME_APPROVED:
+        target: closed
+        guard: resume.delivery-state-and-owner-approval-verified
+        actions:
+          - kind: resume
+            capability: messaging.restore-sender
+          - kind: resume
+            capability: agent.resume-task
+
+  closed:
+    classification: closed
+    type: final
+
+audit:
+  record:
+    - operation_state
+    - provider_message_id
+    - event_id
+    - evidence_reference
+    - guard_decision
+    - selected_transition
+    - state_after
+    - approver

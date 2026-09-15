@@ -2,19 +2,21 @@
 
 Agent Recovery is being developed in public as an implementation-led RFC.
 
-## 0.1 - Validate the recovery contract
+## 0.1 - Establish the recovery contract (completed)
 
 - Collect examples from at least three business domains
 - Validate plans automatically in continuous integration
 - Test unknown-state, duplicate, partial-completion, and failed-compensation paths
 - Resolve naming and core-schema feedback
 
-## 0.2 - Prove interoperability
+## 0.2 - Deterministic recovery state machine (current)
 
+- Replace normative Markdown frontmatter with `RECOVERY.yaml` statecharts
+- Validate states, events, registered guards, actions, and transition safety
 - Build a minimal reference recovery controller
 - Define a portable Action Ledger event shape
 - Add bindings for common agent tool and workflow protocols
-- Demonstrate the same plan across two independent agent runtimes
+- Demonstrate the same machine across two independent agent runtimes
 
 ## 0.3 - Harden the trust model
 

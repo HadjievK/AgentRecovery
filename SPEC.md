@@ -1,210 +1,223 @@
-# Agent Recovery Plan Specification
+# Agent Recovery State Machine Specification
 
 ## Status
 
-Draft 0.1 - Request for Comments
+Draft 0.2 - Request for Comments
 
 ## 1. Scope
 
-This specification defines a portable package for describing recovery behavior for side-effecting AI-agent operations. Its required artifact is a `RECOVERY.md` file containing YAML frontmatter followed by Markdown operator guidance.
+This specification defines a portable, deterministic statechart for recovering
+side-effecting AI-agent operations. Its required artifact is `RECOVERY.yaml`.
+An optional `RECOVERY.md` provides human guidance but does not change machine
+semantics.
 
-The YAML frontmatter is normative and must validate against `schema/recovery-plan.schema.json`. The Markdown body is informative unless another specification explicitly promotes a section to normative status.
+The statechart controls verification, safe retry, compensation, containment,
+escalation, and resumption. It is interpreted by a trusted recovery controller,
+not by the affected agent.
 
 ## 2. Non-goals
 
 Agent Recovery does not:
 
-- classify the root cause of agent failures;
+- control normal agent reasoning or planning;
+- classify every root cause of failure;
 - replace workflow engines or incident-response systems;
-- grant credentials or bypass resource-side authorization;
-- make arbitrary scripts trustworthy;
+- grant credentials or bypass resource authorization;
+- execute arbitrary scripts or model-generated conditions;
 - guarantee that every external effect is reversible; or
-- permit an affected agent to approve its own recovery or resumption.
+- permit an affected agent to approve its own material resumption.
 
 ## 3. Terminology
 
-**Recovery plan**: A versioned declaration describing verification, retry, compensation, containment, escalation, audit, and resumption behavior.
+**Recovery machine**: A versioned statechart describing recovery states, accepted
+events, guarded transitions, registered actions, and final states.
 
-**Recovery controller**: A trusted component that validates plans, reads durable operation state, applies policy, invokes approved capabilities, and records transitions.
+**Recovery controller**: A trusted component that validates and pins machines,
+loads durable operation state, evaluates registered guards, invokes approved
+capabilities, enforces policy, and records transitions.
 
-**Action Ledger**: A durable record of attempted business operations, idempotency keys, side-effect state, downstream references, retry attempts, and recovery outcomes.
+**Action Ledger**: A durable record of attempted operations, identifiers,
+side-effect state, downstream references, attempts, evidence, and recovery
+outcomes.
 
-**Capability**: An administrator-approved operation that a recovery controller may request, such as `agent.stop-task` or `procurement.cancel-request`.
+**Event**: An observable fact offered to the machine, such as
+`VERIFICATION_FOUND`, `COMPENSATION_FAILED`, or `HUMAN_APPROVED`.
 
-**Compensation**: A business action that counteracts a completed effect. Compensation is not necessarily a perfect rollback.
+**Guard**: A named, side-effect-free predicate resolved by the controller and
+evaluated against trusted ledger evidence and policy.
 
-**Unknown state**: A state in which the controller cannot determine whether an external side effect occurred.
+**Action**: An administrator-approved capability referenced by opaque identifier,
+such as `agent.stop-task` or `procurement.cancel-request`.
 
-**Resume gate**: The policy and approval boundary that must be satisfied before affected work can continue.
+**Unknown state**: A state in which the controller cannot determine whether an
+external side effect occurred.
 
-## 4. Required package
-
-Every package must contain:
+## 4. Package
 
 ```text
-<plan-name>/
-└── RECOVERY.md
+<machine-name>/
+├── RECOVERY.yaml     # Required: normative statechart
+├── RECOVERY.md       # Optional: informative operator guidance
+├── tests/            # Optional: conformance and failure-injection cases
+├── references/       # Optional: runbooks and evidence-source documentation
+└── handlers/         # Optional: separately trusted implementations
 ```
 
-The directory name should equal the frontmatter `name`. Optional files must not override or weaken the normative plan.
+The directory name should equal the machine `name`. Optional content must not
+override or weaken the normative statechart.
 
-## 5. `RECOVERY.md` format
+## 5. Required fields
 
-The document must begin with YAML frontmatter delimited by `---`. Required top-level fields are:
+`RECOVERY.yaml` must validate against
+`schema/recovery-machine.schema.json`. Required top-level fields are:
 
 - `name`
 - `description`
 - `version`
 - `spec_version`
 - `applies_to`
-- `operation`
-- `verify`
-- `retry`
-- `contain`
-- `escalate`
-- `resume`
+- `initial`
+- `states`
 - `audit`
 
-`compensate` and `triggers` are optional.
+`spec_version` is `agent-recovery/0.2` for this draft.
 
-### 5.1 Capability identifiers
+## 6. Machine semantics
 
-Capability identifiers are opaque names resolved by a trusted registry. A plan must not embed operating-system commands, credentials, access tokens, or executable code in capability fields.
+### 6.1 States
 
-Loading a plan does not authorize its capabilities. Every invocation remains subject to identity, policy, resource, destination, and approval checks outside the plan.
+`initial` names the first state. Each state may declare:
 
-### 5.2 Effect classes
+- `entry`: actions invoked after the state is durably entered;
+- `on`: events accepted in the state and their transitions; and
+- `type: final`: a terminal state that accepts no further events.
 
-The core effect classes are:
+The initial draft uses atomic states. Parallel and compound states are reserved
+for a future compatible profile after execution semantics are tested.
 
-- `read-only`
-- `reversible-write`
-- `irreversible-write`
-- `external-communication`
-- `financial-action`
-- `authority-change`
-- `multi-step-workflow`
+### 6.2 Events
 
-Controllers may apply stricter policy than the plan requests. Unknown effect classes must fail closed unless a registered extension defines their semantics.
+Events are opaque, uppercase identifiers. An event must carry the machine name
+and version, operation ID, correlation ID, event ID, event time, evidence
+reference, and producer identity in the runtime envelope.
 
-## 6. Processing model
+The envelope is stored in the Action Ledger. It is not embedded in the machine.
+Duplicate event IDs must be handled idempotently.
 
-A conformant recovery controller performs these steps:
+### 6.3 Guards
 
-1. Validate the plan and establish its trusted provenance and version.
-2. Match the affected operation to `applies_to` and any declared recovery triggers.
-3. Load the Action Ledger using the operation and correlation identifiers.
-4. Determine whether an external side effect was impossible, possible, confirmed, or unknown.
-5. If a side effect was possible but unconfirmed, verify authoritative downstream state before retrying.
-6. Select only a transition permitted by both the plan and current enterprise policy.
-7. Invoke capabilities through a trusted registry using task-scoped credentials.
-8. Record verification evidence, decisions, approvals, capability results, and material effects.
-9. Require the resume gate before restoring affected authority or continuing work.
+A transition may reference one registered guard. Guards must be deterministic,
+side-effect-free predicates over trusted evidence and policy. A machine must not
+contain executable expressions such as `outcome == found`.
 
-The model may propose or explain a transition. It must not be the sole enforcement point for a consequential recovery action.
+Unknown, unavailable, or failed guards evaluate to false and generate an auditable
+controller error. They must never broaden authority or make a retry safe.
 
-## 7. Recovery states
+### 6.4 Actions
 
-The core states are:
+Actions are opaque capability identifiers with optional static parameters. A
+machine must not contain shell commands, scripts, credentials, tokens, prompts,
+or untrusted destination values.
 
-```text
-started
-effect-possible
-verified-not-applied
-verified-applied
-unknown
-retry-safe
-compensating
-contained
-recovered
-escalated
-resume-pending
-closed
-```
+Loading a machine does not authorize its actions. Every invocation remains
+subject to identity, policy, resource, destination, and approval checks.
 
-A typical uncertain-write flow is:
+Action completion or failure returns as a new event. An action must not silently
+advance machine state.
 
-```text
-started
-  -> effect-possible
-  -> unknown
-  -> verified-not-applied -> retry-safe
-  -> verified-applied     -> recovered or compensating
-  -> unknown              -> escalated
-```
+### 6.5 Transition selection
 
-Unknown state must never transition directly to a repeated side-effecting operation.
+An event may map to one transition or an ordered list of guarded transitions. The
+controller selects the first transition whose registered guard evaluates true.
+An unguarded transition is the default and must appear last.
 
-## 8. Recovery triggers
+If no transition is selected, the state does not change and the rejection is
+audited. Controllers may escalate the rejection under stricter enterprise policy.
 
-A trigger is an observable condition that causes a controller to evaluate a recovery plan. Triggers select a plan; they do not authorize a recovery action.
+The controller must durably record the selected transition before invoking its
+actions.
 
-The initial trigger vocabulary includes:
+## 7. Core safety invariants
 
-- `timeout`
-- `timeout-after-side-effect`
-- `unknown-state`
-- `duplicate-detected`
-- `partial-completion`
-- `authorization-failure`
-- `policy-conflict`
-- `verification-failure`
-- `compensation-failure`
-- `safety-violation`
-- `manual-intervention`
+Every conformant controller must enforce these invariants independently of the
+machine:
 
-The vocabulary describes conditions relevant to recovery, not their root cause. A controller may derive these events from tool results, workflow state, monitoring, deterministic policy, or an authorized operator.
+1. A possible side effect in unknown state is never retried directly.
+2. Retry requires authoritative evidence that the effect was not applied, plus
+   idempotency and attempt-limit policy.
+3. Stopping execution and revoking authority are separate actions.
+4. Compensation is a new business operation with its own failure semantics.
+5. Unknown or conflicting evidence fails closed and escalates.
+6. Material resumption requires verified state and accountable external approval.
+7. An affected agent cannot modify its machine, ledger evidence, policy, or trust
+   status during recovery.
 
-For example, `timeout-after-side-effect` must lead to state verification before any retry, while `authorization-failure` must not be resolved by repeatedly attempting the same operation.
+## 8. Processing model
 
-## 9. Containment and revocation
+A controller performs these steps:
 
-Stopping execution and revoking authority are separate operations. A plan for consequential work should normally include both, plus cancellation or isolation of delegated work where applicable.
+1. Validate and pin the selected machine and trusted provenance.
+2. Match the affected operation to `applies_to`.
+3. Load the current state and Action Ledger using operation and correlation IDs.
+4. Validate and deduplicate the incoming event.
+5. Find transitions accepted for the current state.
+6. Evaluate registered guards against authoritative evidence and policy.
+7. Apply a permitted state transition atomically and record its decision.
+8. Invoke registered actions using task-scoped authority.
+9. Store action results as new evidence events.
+10. Continue until a final, contained, or escalated state is reached.
 
-Containment should use the narrowest safe scope: one task before one agent, one capability before one connector, and one destination before an organization-wide shutdown, unless evidence indicates broader compromise.
+The model may recommend or explain a transition. It must not be the sole
+enforcement point for a consequential recovery action.
 
-## 10. Human intervention
+## 9. Human intervention and resumption
 
-The controller must escalate when required by enterprise policy or the plan. Typical triggers include:
+Human decisions enter the machine as authenticated events. The reviewer should
+receive the initiating request, identities, operation and correlation IDs,
+triggering event, current state, ledger history, downstream references,
+verification evidence, proposed action, and consequences of approval or rejection.
 
-- external state cannot be verified;
-- an irreversible effect may have occurred;
-- compensation failed;
-- data sources conflict;
-- authorization or user intent is ambiguous;
-- the recovery capability would increase authority; or
-- the business impact exceeds the autonomous-recovery threshold.
+Resumption must be represented explicitly, normally through a `resume-pending`
+state followed by an approval-and-evidence guarded transition. Recovery is not
+complete merely because execution stopped.
 
-The reviewer should receive the initiating request, agent and task identity, triggering event, attempted operation, tool result, ledger state, downstream references, verification evidence, recommended action, and consequences of approval or rejection.
-
-## 11. Resumption
-
-Recovery is not complete merely because execution stopped. The resume gate must define the evidence, remediation, credential state, testing, and accountable approval required to continue.
-
-An affected runtime must not approve its own resumption after a material incident.
-
-## 12. Audit requirements
+## 10. Audit requirements
 
 A controller must durably record:
 
-- plan name and version;
+- machine name, version, digest, and provenance;
 - initiating principal, agent, runtime, and task;
-- operation and correlation identifiers;
-- failure signal and supporting evidence;
-- verification attempts and authoritative results;
-- recovery transitions and policy decisions;
-- capabilities invoked and their effects;
+- operation, correlation, and event identifiers;
+- states before and after each event;
+- evidence references and guard decisions;
+- selected or rejected transitions;
+- invoked capabilities and their effects;
 - human approvals or rejections; and
 - final recovery and resumption status.
 
-Sensitive prompt and context content should be minimized or referenced rather than copied indiscriminately.
+Sensitive prompt and context content should be referenced or minimized rather than
+copied indiscriminately.
 
-## 13. Security considerations
+## 11. Security considerations
 
-Recovery plans are security-sensitive supply-chain artifacts. Controllers should pin reviewed versions, verify provenance, enforce schema validation, restrict capability resolution, and prevent plans from modifying audit evidence, policy, or their own trust status.
+Recovery machines are security-sensitive supply-chain artifacts. Controllers
+should verify provenance, pin reviewed versions, enforce schema validation,
+restrict guard and action resolution, and prevent machines from changing audit
+evidence, policy, or their own trust status.
 
-Recovery capabilities should be idempotent where possible. Compensation must itself have failure semantics because a failed recovery can increase the original impact.
+The format uses a restricted statechart profile inspired by W3C SCXML concepts.
+It does not accept SCXML script, expression, or arbitrary executable-content
+features.
 
-## 14. Protocol bindings
+## 12. Compatibility
 
-The core format is protocol-neutral. Future bindings may define how plan references, operation identifiers, recovery states, and evidence references are carried through agent protocols, workflow events, and tracing systems.
+Draft 0.1 used YAML frontmatter inside `RECOVERY.md`. Draft 0.2 moves the normative
+contract to `RECOVERY.yaml`; the 0.1 schema remains available for experiments but
+is not the current format. Controllers must select behavior using `spec_version`
+and must not silently reinterpret a 0.1 plan as a 0.2 machine.
+
+## 13. Future profiles
+
+Future drafts may add compound and parallel states, a standardized event envelope,
+signed distribution, multi-agent lineage, protocol bindings, and mappings to
+existing state-machine or workflow engines.
