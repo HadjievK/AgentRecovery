@@ -198,7 +198,43 @@ A controller must durably record:
 Sensitive prompt and context content should be referenced or minimized rather than
 copied indiscriminately.
 
-## 11. Security considerations
+## 11. Classifier-assisted decisions
+
+A recovery deployment may use a fast, bounded classification model—a "System One"
+model such as one returning calibrated choice, score, or yes/no probabilities—to
+help decide *when* recovery is needed and *how urgent* it is. This is compatible
+with the standard only within strict boundaries.
+
+A classifier MAY:
+
+- flag a normal operation as effect-possible and trigger the initial recovery
+  event, feeding detection rather than replacing it;
+- classify a raw failure signal into a *candidate* event identifier before the
+  controller validates and deduplicates it under §6.2; and
+- produce an advisory severity or urgency signal to inform human escalation
+  under §9.
+
+A classifier MUST NOT:
+
+- serve as a guard, or supply any part of a guard decision (§6.3); guards remain
+  deterministic, side-effect-free predicates over trusted evidence and policy;
+- select or advance a transition; only the controller advances the machine (§6.5,
+  §8);
+- authorize a retry, compensation, containment, revocation, or resumption; or
+- gate material resumption, which requires verified state and accountable
+  external approval (§7.6).
+
+A classifier output is untrusted input. The controller MUST validate any candidate
+event against the current state exactly as it validates any other event, and MUST
+fail closed on low-confidence, unavailable, or conflicting classifications rather
+than treating a probability as evidence that an effect was or was not applied.
+
+When a classifier contributes to a recorded decision, its identity, version, the
+question asked, and the returned probabilities MUST be captured as an evidence
+reference in the Action Ledger (§10), distinct from the deterministic guard
+decision that actually authorized the transition.
+
+## 12. Security considerations
 
 Recovery machines are security-sensitive supply-chain artifacts. Controllers
 should verify provenance, pin reviewed versions, enforce schema validation,
@@ -209,14 +245,18 @@ The format uses a restricted statechart profile inspired by W3C SCXML concepts.
 It does not accept SCXML script, expression, or arbitrary executable-content
 features.
 
-## 12. Compatibility
+A classifier-assisted decision (§11) never widens controller authority. Its output
+is advisory evidence; enforcement remains with deterministic guards, policy, and,
+for material actions, an accountable human.
+
+## 13. Compatibility
 
 Draft 0.1 used YAML frontmatter inside `RECOVERY.md`. Draft 0.2 moves the normative
 contract to `RECOVERY.yaml`; the 0.1 schema remains available for experiments but
 is not the current format. Controllers must select behavior using `spec_version`
 and must not silently reinterpret a 0.1 plan as a 0.2 machine.
 
-## 13. Future profiles
+## 14. Future profiles
 
 Future drafts may add compound and parallel states, a standardized event envelope,
 signed distribution, multi-agent lineage, protocol bindings, and mappings to

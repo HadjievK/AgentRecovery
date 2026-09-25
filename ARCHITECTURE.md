@@ -75,6 +75,21 @@ A conformant Agent Recovery machine:
 8. Work resumes only after the machine receives the required approval and
    verification events.
 
+## Classifier-assisted detection
+
+The thesis above is a two-system split: reasoning during normal operation,
+determinism during recovery. A fast, bounded classification model—a "System One"
+model that returns calibrated choice, score, or yes/no probabilities—can sit at
+the boundary and decide *when* to cross it: flagging that an operation's effect is
+possible, proposing which recovery event a raw failure signal represents, or
+scoring how urgently a human should be paged.
+
+Such a classifier is an event producer, not an enforcement point. It proposes; the
+controller disposes. Its output enters as an untrusted candidate event and advisory
+evidence, is recorded in the ledger, and is then validated against the current
+state like any other event. It never evaluates a guard, advances a transition, or
+authorizes a side effect. See [specification §11](SPEC.md).
+
 ## Why a statechart
 
 A flat finite-state machine is enough for simple verification and retry. A
