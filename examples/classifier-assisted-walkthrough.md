@@ -10,6 +10,10 @@ It traces the [procurement-request machine](procurement-request/RECOVERY.yaml). 
 part of this changes machine semantics — the classifier only produces candidate
 events and advisory evidence.
 
+The inspectable JSON artifacts for this incident (classifier response, candidate
+event, and full Action Ledger) are in
+[classifier-assisted/](classifier-assisted/).
+
 ## The incident
 
 An agent calls `procurement.create-request` for a €48,000 hardware order. The call

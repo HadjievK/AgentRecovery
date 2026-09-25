@@ -1,0 +1,35 @@
+{
+  "$comment": "Illustrative Jev-style 'System One' classifier response. Not a live API payload; field names follow TypeSafe AI's choice/score/noul question model (https://typesafe.ai/). This is untrusted input to the recovery controller (SPEC.md section 11).",
+  "classifier": {
+    "provider": "typesafe",
+    "model": "jev",
+    "version": "2026-08"
+  },
+  "state": {
+    "tool": "procurement.create-request",
+    "signal": "timeout",
+    "elapsed_ms": 30000,
+    "amount_eur": 48000,
+    "idempotency_key": "pr-9f3a1c72-..."
+  },
+  "questions": [
+    {
+      "id": "recovery-event-choice",
+      "type": "choice",
+      "prompt": "Which recovery event does this signal represent?",
+      "answers": {
+        "VERIFICATION_INCONCLUSIVE": 0.62,
+        "VERIFICATION_FAILED": 0.28,
+        "START_VERIFICATION": 0.10
+      }
+    },
+    {
+      "id": "human-urgency-score",
+      "type": "score",
+      "prompt": "How urgent is human attention?",
+      "levels": ["low", "medium", "high"],
+      "answer": "high",
+      "confidence": 0.71
+    }
+  ]
+}

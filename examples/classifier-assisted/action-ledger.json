@@ -1,0 +1,79 @@
+{
+  "$comment": "Illustrative Action Ledger for the incident in ../classifier-assisted-walkthrough.md, traced through ../procurement-request/RECOVERY.yaml. Note how classifier output lives in evidence_reference and is ALWAYS distinct from guard_decision. The classifier never authorizes a transition; deterministic guards and a human do. Fields follow the machine's audit.record list.",
+  "operation_id": "op-77d0",
+  "correlation_id": "corr-1e88",
+  "machine": "procurement-request-recovery@0.2.0",
+  "entries": [
+    {
+      "event_id": "evt-4c21",
+      "state_before": "effect-possible",
+      "event": "START_VERIFICATION",
+      "evidence_reference": {
+        "source": "jev-classification.json",
+        "classifier": "typesafe/jev@2026-08",
+        "question": "recovery-event-choice",
+        "probabilities": { "VERIFICATION_INCONCLUSIVE": 0.62, "VERIFICATION_FAILED": 0.28, "START_VERIFICATION": 0.10 }
+      },
+      "guard_decision": null,
+      "selected_transition": "effect-possible -> verifying",
+      "invoked_capabilities": ["procurement.find-by-idempotency-key"],
+      "state_after": "verifying",
+      "approver": null
+    },
+    {
+      "event_id": "evt-4c22",
+      "state_before": "verifying",
+      "event": "VERIFICATION_INCONCLUSIVE",
+      "evidence_reference": { "source": "procurement.find-by-idempotency-key", "outcome": "vendor_api_degraded" },
+      "guard_decision": null,
+      "selected_transition": "verifying -> unknown",
+      "invoked_capabilities": [],
+      "state_after": "unknown",
+      "approver": null
+    },
+    {
+      "event_id": "evt-4c23",
+      "state_before": "unknown",
+      "event": "(entry)",
+      "evidence_reference": null,
+      "guard_decision": null,
+      "selected_transition": "unknown (entry actions)",
+      "invoked_capabilities": ["agent.stop-task", "identity.revoke-task-token", "workflow.cancel-descendants"],
+      "state_after": "unknown",
+      "approver": null
+    },
+    {
+      "event_id": "evt-4c24",
+      "state_before": "unknown",
+      "event": "CONTAINMENT_COMPLETED",
+      "evidence_reference": { "source": "containment", "outcome": "all_actions_succeeded" },
+      "guard_decision": null,
+      "selected_transition": "unknown -> escalated",
+      "invoked_capabilities": ["incident.open-procurement-case"],
+      "state_after": "escalated",
+      "approver": null
+    },
+    {
+      "event_id": "evt-4c25",
+      "state_before": "escalated",
+      "event": "HUMAN_RESOLUTION_RECORDED",
+      "evidence_reference": { "source": "incident.open-procurement-case", "case": "INC-30412" },
+      "guard_decision": { "guard": "incident.resolution-verified", "result": true },
+      "selected_transition": "escalated -> resume-pending",
+      "invoked_capabilities": [],
+      "state_after": "resume-pending",
+      "approver": "procurement-owner:a.novak"
+    },
+    {
+      "event_id": "evt-4c26",
+      "state_before": "resume-pending",
+      "event": "RESUME_APPROVED",
+      "evidence_reference": { "source": "resume-review", "verified_state": "no_duplicate_request" },
+      "guard_decision": { "guard": "resume.evidence-and-owner-approval-verified", "result": true },
+      "selected_transition": "resume-pending -> closed",
+      "invoked_capabilities": ["identity.issue-new-task-token", "agent.resume-task"],
+      "state_after": "closed",
+      "approver": "procurement-owner:a.novak"
+    }
+  ]
+}

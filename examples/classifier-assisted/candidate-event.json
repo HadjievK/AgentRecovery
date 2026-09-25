@@ -1,0 +1,18 @@
+{
+  "$comment": "The candidate recovery event the harness emits after applying its OWN policy to jev-classification.json. The top choice (0.62) is below the harness confident-routing threshold, so the harness emits the most conservative event the current state accepts (START_VERIFICATION) rather than the highest-probability one. The classifier proposed; harness policy disposed.",
+  "harness_policy": {
+    "confident_routing_threshold": 0.80,
+    "top_choice": "VERIFICATION_INCONCLUSIVE",
+    "top_probability": 0.62,
+    "decision": "below threshold -> emit conservative candidate accepted by current state",
+    "urgency": "high"
+  },
+  "candidate_event": {
+    "event_id": "evt-4c21",
+    "name": "START_VERIFICATION",
+    "operation_id": "op-77d0",
+    "correlation_id": "corr-1e88",
+    "produced_by": "agent-harness",
+    "evidence_reference": "jev-classification.json"
+  }
+}
