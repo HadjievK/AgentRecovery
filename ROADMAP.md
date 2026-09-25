@@ -15,6 +15,7 @@ Agent Recovery is being developed in public as an implementation-led RFC.
 - Validate states, events, registered guards, actions, and transition safety
 - Build a minimal reference recovery controller
 - Define a portable Action Ledger event shape
+- Specify the classifier-assisted decision boundary (System One detection vs. deterministic authorization)
 - Add bindings for common agent tool and workflow protocols
 - Demonstrate the same machine across two independent agent runtimes
 

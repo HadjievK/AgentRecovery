@@ -22,6 +22,11 @@ A conformant tool integration additionally:
 4. emits deduplicated recovery events with evidence references; and
 5. declares whether compensation is supported.
 
+A tool MAY use a fast classification model to propose a candidate recovery event
+or an advisory urgency signal, provided the classification is recorded as evidence
+and the controller still validates the event under Level 3. A classifier is never
+a guard or a transition authority (see specification §11).
+
 ## Level 3 - Recovery Controller
 
 A conformant controller additionally:

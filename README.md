@@ -42,6 +42,7 @@ Agent Recovery makes that missing operational contract explicit as a state machi
 7. **Recovery includes safe resumption.** The agent does not authorize its own return to service after a material incident.
 8. **Human authority is risk-driven.** Irreversible, ambiguous, or high-impact recovery decisions require an accountable person.
 9. **Every transition is auditable.** Recovery must be reconstructable from durable evidence, not conversational memory.
+10. **Judgment and authorization are separate.** A fast "System One" classifier may decide *when* recovery is needed and how urgent it is; only the deterministic controller decides *what* is safe to do. A probability is advisory evidence, never a guard.
 
 ## Package layout
 
@@ -55,6 +56,8 @@ recovery-machine-name/
 ```
 
 See the [architecture](ARCHITECTURE.md), [draft specification](SPEC.md), [conformance levels](CONFORMANCE.md), [normative state-machine schema](schema/recovery-machine.schema.json), and [procurement example](examples/procurement-request/RECOVERY.yaml).
+
+For how a fast classifier (a "System One" model such as [Jev](https://www.langchain.com/blog/building-a-harness-with-jev)) can route incidents into recovery without touching the deterministic core, see [specification §11](SPEC.md#11-classifier-assisted-decisions) and the [worked walkthrough](examples/classifier-assisted-walkthrough.md).
 
 ## Recovery flow
 

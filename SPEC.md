@@ -234,6 +234,9 @@ question asked, and the returned probabilities MUST be captured as an evidence
 reference in the Action Ledger (§10), distinct from the deterministic guard
 decision that actually authorized the transition.
 
+A worked example of this boundary is
+[examples/classifier-assisted-walkthrough.md](examples/classifier-assisted-walkthrough.md).
+
 ## 12. Security considerations
 
 Recovery machines are security-sensitive supply-chain artifacts. Controllers
